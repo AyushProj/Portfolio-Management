@@ -3,6 +3,8 @@ from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
 from extensions import db
 from models import Trade, Portfolio
 from services.price_service import get_price
+from datetime import date as date_type
+
 
 app = Flask(__name__)
 
@@ -79,6 +81,75 @@ def get_trades():
     ])
 
 
+@app.route("/positions", methods=["GET"])
+def get_positions():
+    trades = Trade.query.all()
+
+    positions = {}
+
+    for trade in trades:
+        qty = trade.quantity if trade.side == "BUY" else -trade.quantity
+
+        if trade.symbol not in positions:
+            positions[trade.symbol] = 0
+
+        positions[trade.symbol] += qty
+
+    return jsonify(positions)
+
+@app.route("/pnl", methods=["GET"])
+def get_pnl():
+    trades = Trade.query.all()
+
+    positions = {}
+
+    # Aggregate trades
+    for trade in trades:
+        symbol = trade.symbol
+        qty = trade.quantity if trade.side == "BUY" else -trade.quantity
+        cost = float(trade.price) * qty
+
+        if symbol not in positions:
+            positions[symbol] = {
+                "quantity": 0,
+                "total_cost": 0.0
+            }
+
+        positions[symbol]["quantity"] += qty
+        positions[symbol]["total_cost"] += cost
+
+    result = {}
+    today = date_type.today().isoformat()
+
+    for symbol, data in positions.items():
+        quantity = data["quantity"]
+
+        # Ignore closed positions
+        if quantity == 0:
+            continue
+
+        avg_cost = data["total_cost"] / quantity
+
+        # Current market price (weekend-safe)
+        try:
+            current_price = float(get_price(symbol, today))
+        except ValueError:
+            continue
+
+        market_value = current_price * quantity
+        cost_basis = avg_cost * quantity
+        unrealized_pnl = market_value - cost_basis
+
+        result[symbol] = {
+            "quantity": quantity,
+            "avg_cost": round(avg_cost, 2),
+            "current_price": round(current_price, 2),
+            "market_value": round(market_value, 2),
+            "cost_basis": round(cost_basis, 2),
+            "unrealized_pnl": round(unrealized_pnl, 2)
+        }
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":
