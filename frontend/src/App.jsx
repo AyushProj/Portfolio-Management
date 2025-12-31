@@ -19,18 +19,19 @@ function Dashboard() {
   }, []);
 
   return (
-    <div>
-      <h1>Portfolio Management Dashboard</h1>
-      <p>{status}</p>
+  <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px" }}>
+    <h1>Portfolio Management Dashboard</h1>
+    <p>{status}</p>
 
-      <StockSelector />
+    <StockSelector />
+    <TradesTable />
+    <PositionsTable />
+    <PnLTable />
+  </div>
+);
 
-      <TradesTable />
-      <PositionsTable />
-      <PnLTable />
-    </div>
-  );
 }
+
 
 
 function App() {
