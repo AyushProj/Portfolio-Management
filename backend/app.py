@@ -4,9 +4,19 @@ from extensions import db
 from models import Trade, Portfolio
 from services.price_service import get_price
 from datetime import date as date_type
+from flask_cors import CORS
+from models import Trade, Portfolio, Stock, Price
+
 
 
 app = Flask(__name__)
+CORS(
+    app,
+    resources={r"/*": {"origins": "http://localhost:5173"}},
+    supports_credentials=True
+)
+
+
 
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
@@ -150,6 +160,29 @@ def get_pnl():
         }
 
     return jsonify(result)
+
+@app.route("/prices/<symbol>", methods=["GET"])
+def get_prices(symbol):
+    stock = Stock.query.filter_by(symbol=symbol.upper()).first()
+    if not stock:
+        return jsonify({"error": "Unknown symbol"}), 404
+
+    prices = (
+        Price.query
+        .filter_by(stock_id=stock.id)
+        .order_by(Price.date.asc())
+        .all()
+    )
+
+    return jsonify([
+        {
+            "date": p.date.isoformat(),
+            "open": float(p.open)
+        }
+        for p in prices
+        if p.open is not None
+    ])
+
 
 
 if __name__ == "__main__":
