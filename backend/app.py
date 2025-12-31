@@ -6,6 +6,7 @@ from services.price_service import get_price
 from datetime import date as date_type
 from flask_cors import CORS
 from models import Trade, Portfolio, Stock, Price
+from datetime import datetime
 
 
 
@@ -41,6 +42,11 @@ def create_trade():
     side = data["side"].upper()
     quantity = data["quantity"]
     date_str = data["date"]
+    try:
+        trade_timestamp = datetime.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
 
     if side not in {"BUY", "SELL"}:
         return jsonify({"error": "side must be BUY or SELL"}), 400
@@ -58,12 +64,14 @@ def create_trade():
         return jsonify({"error": str(e)}), 400
 
     trade = Trade(
-        portfolio_id=portfolio.id,
-        symbol=symbol,
-        side=side,
-        quantity=quantity,
-        price=price
-    )
+    portfolio_id=portfolio.id,
+    symbol=symbol,
+    side=side,
+    quantity=quantity,
+    price=price,
+    timestamp=trade_timestamp
+)
+
 
     db.session.add(trade)
     db.session.commit()

@@ -40,3 +40,26 @@ export async function createTrade(tradeData) {
 
   return response.json();
 }
+
+export async function buyStock({ symbol, quantity, date }) {
+  const res = await fetch("http://127.0.0.1:5000/trades", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      symbol,
+      side: "BUY",
+      quantity,
+      date
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Failed to buy stock");
+  }
+
+  return res.json();
+}
+
