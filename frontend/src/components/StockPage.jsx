@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+// src/components/StockPage.jsx
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import StockChart from "./StockChart";
 import { buyStock } from "../services/api";
+import { subscribe } from "../services/simulator";
 
 const WINDOW_SIZE = 50;
 
@@ -9,89 +11,63 @@ function StockPage() {
   const { symbol } = useParams();
 
   const [allPrices, setAllPrices] = useState([]);
-  const [windowStart, setWindowStart] = useState(0);
   const [error, setError] = useState(null);
+
+  const [simIndex, setSimIndex] = useState(0);
+  const [simPrice, setSimPrice] = useState(null);
+  const [simDate, setSimDate] = useState(null);
 
   const [trendColor, setTrendColor] = useState("#ffffff");
   const [quantity, setQuantity] = useState(1);
   const [buyStatus, setBuyStatus] = useState("");
 
-  /* ---------------- Fetch price data ---------------- */
+  // subscribe to global simulator state
+  useEffect(() => {
+    const unsub = subscribe(({ index, prices, currentDate }) => {
+      setSimIndex(index);
+      setSimPrice(prices?.[symbol] ?? null);
+      setSimDate(currentDate ?? null);
+    });
+    return unsub;
+  }, [symbol]);
+
+  // fetch full dataset for this symbol (for chart window)
   useEffect(() => {
     fetch(`http://127.0.0.1:5000/prices/${symbol}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load price data");
         return res.json();
       })
-      .then((data) => {
-        setAllPrices(data);
-        setWindowStart(0);
-      })
+      .then((data) => setAllPrices(data))
       .catch((err) => setError(err.message));
   }, [symbol]);
 
-  /* ---------------- Playback logic ---------------- */
-  useEffect(() => {
-    if (allPrices.length <= WINDOW_SIZE) return;
+  const windowStart = Math.max(0, simIndex - WINDOW_SIZE + 1);
 
-    const interval = setInterval(() => {
-      setWindowStart((prev) => {
-        if (prev + WINDOW_SIZE >= allPrices.length) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
+  const visibleData = useMemo(() => {
+    return allPrices.slice(windowStart, windowStart + WINDOW_SIZE);
+  }, [allPrices, windowStart]);
 
-    return () => clearInterval(interval);
-  }, [allPrices]);
-
-  if (error) {
-    return <p style={{ color: "red" }}>{error}</p>;
-  }
-
-  const visibleData = allPrices.slice(
-    windowStart,
-    windowStart + WINDOW_SIZE
-  );
-
-  const currentPoint =
-    visibleData.length > 0
-      ? visibleData[visibleData.length - 1]
-      : null;
-
-  const currentPrice = currentPoint ? currentPoint.open : null;
-  const currentDate = currentPoint ? currentPoint.date : null;
-
-  /* ---------------- Trend color logic ---------------- */
+  // trend color based on last 2 visible points
   useEffect(() => {
     if (visibleData.length < 2) return;
-
     const prev = visibleData[visibleData.length - 2].open;
     const curr = visibleData[visibleData.length - 1].open;
-
-    if (curr > prev) {
-      setTrendColor("#2ea043"); // green
-    } else if (curr < prev) {
-      setTrendColor("#f85149"); // red
-    }
+    setTrendColor(curr >= prev ? "#2ea043" : "#f85149");
   }, [visibleData]);
 
-  /* ---------------- Buy handler ---------------- */
   async function handleBuy() {
-    if (!currentDate) {
-      setBuyStatus("❌ No date available for trade");
-      return;
-    }
-
     try {
       setBuyStatus("Placing order...");
+      // use simulator date so trade timestamp aligns with dataset
+      const dateToUse = simDate ?? (visibleData.at(-1)?.date ?? null);
+
+      if (!dateToUse) throw new Error("No simulated date available");
 
       await buyStock({
         symbol,
         quantity: Number(quantity),
-        date: currentDate
+        date: dateToUse,
       });
 
       setBuyStatus("✅ Buy order executed");
@@ -100,7 +76,8 @@ function StockPage() {
     }
   }
 
-  /* ---------------- UI ---------------- */
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+
   return (
     <div
       style={{
@@ -110,71 +87,59 @@ function StockPage() {
         padding: "24px",
       }}
     >
-      <div style={{ width: "100%", padding: "0 32px" }}>
-        <Link to="/" style={{ color: "#58a6ff" }}>
-          ← Back to Dashboard
-        </Link>
+      <Link to="/" style={{ color: "#58a6ff" }}>
+        ← Back to Dashboard
+      </Link>
 
-        <h2 style={{ marginTop: "16px" }}>
-          {symbol} — Open Price
-        </h2>
+      <h2 style={{ marginTop: "16px" }}>{symbol} — Open Price</h2>
 
-        {currentPrice !== null && (
-          <h3>
-            Current Price:{" "}
-            <span style={{ color: trendColor }}>
-              ${currentPrice}
-            </span>
-          </h3>
-        )}
+      {typeof simPrice === "number" && (
+        <h3>
+          Current Price:{" "}
+          <span style={{ color: trendColor }}>${simPrice.toFixed(2)}</span>
+        </h3>
+      )}
 
-        <div style={{ marginTop: "20px" }}>
-          <label style={{ marginRight: "10px" }}>
-            Quantity:
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              style={{
-                marginLeft: "8px",
-                width: "80px",
-                background: "#111",
-                color: "#fff",
-                border: "1px solid #333",
-                padding: "4px",
-              }}
-            />
-          </label>
-
-          <button
-            onClick={handleBuy}
+      <div style={{ marginTop: "16px" }}>
+        <label style={{ marginRight: "10px" }}>
+          Quantity:
+          <input
+            type="number"
+            min="1"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
             style={{
-              marginLeft: "12px",
-              padding: "6px 14px",
-              background: "#1f8f3a",
+              marginLeft: "8px",
+              width: "80px",
+              background: "#111",
               color: "#fff",
-              border: "none",
-              cursor: "pointer",
+              border: "1px solid #333",
+              padding: "4px",
             }}
-          >
-            Buy
-          </button>
-
-          {buyStatus && (
-            <div style={{ marginTop: "10px", color: "#aaa" }}>
-              {buyStatus}
-            </div>
-          )}
-        </div>
-
-        {visibleData.length > 0 && (
-          <StockChart
-            data={visibleData}
-            fullData={allPrices}
-            trendColor={trendColor}
           />
+        </label>
+
+        <button
+          onClick={handleBuy}
+          style={{
+            marginLeft: "12px",
+            padding: "6px 14px",
+            background: "#238636",
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          Buy
+        </button>
+
+        {buyStatus && (
+          <div style={{ marginTop: "10px", color: "#aaa" }}>{buyStatus}</div>
         )}
+      </div>
+
+      <div style={{ marginTop: "20px" }}>
+        <StockChart data={visibleData} trendColor={trendColor} />
       </div>
     </div>
   );

@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+// src/App.jsx
+import { useEffect } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 
-import TradesTable from "./components/TradesTable";
-import PositionsTable from "./components/PositionsTable";
-import PnLTable from "./components/PnLTable";
 import StockSelector from "./components/StockSelector";
 import StockPage from "./components/StockPage";
 import TradesPage from "./components/TradesPage";
 import PositionsPage from "./components/PositionsPage";
 import PnLPage from "./components/PnLPage";
+
+import { loadDataset, startSimulation } from "./services/simulator";
 
 const navButtonStyle = {
   marginRight: "12px",
@@ -20,21 +20,13 @@ const navButtonStyle = {
   cursor: "pointer",
 };
 
+const SYMBOLS = ["AAPL", "AMZN", "MSFT", "NFLX", "TSLA"]; // your dataset tickers
+
 function Dashboard() {
-  const [status, setStatus] = useState("Loading...");
-
-  useEffect(() => {
-    fetch("http://127.0.0.1:5000/")
-      .then((res) => res.json())
-      .then((data) => setStatus(data.message))
-      .catch(() => setStatus("Backend not reachable"));
-  }, []);
-
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px" }}>
       <h1>Portfolio Management Dashboard</h1>
 
-      {/* Navigation buttons */}
       <div style={{ marginBottom: "24px" }}>
         <Link to="/trades">
           <button style={navButtonStyle}>Trades</button>
@@ -55,6 +47,27 @@ function Dashboard() {
 }
 
 function App() {
+  // ✅ Start simulator once when app loads
+  useEffect(() => {
+    Promise.all(
+      SYMBOLS.map((sym) =>
+        fetch(`http://127.0.0.1:5000/prices/${sym}`)
+          .then((r) => {
+            if (!r.ok) throw new Error(`Failed prices for ${sym}`);
+            return r.json();
+          })
+          .then((data) => loadDataset(sym, data))
+      )
+    )
+      .then(() => {
+        // every 2 seconds as you requested
+        startSimulation({ intervalMs: 2000 });
+      })
+      .catch((e) => {
+        console.error("Simulator preload failed:", e);
+      });
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
