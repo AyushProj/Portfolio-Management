@@ -7,6 +7,7 @@ import StockPage from "./components/StockPage";
 import TradesPage from "./components/TradesPage";
 import PositionsPage from "./components/PositionsPage";
 import PnLPage from "./components/PnLPage";
+import RealizedPnLPage from "./components/RealizedPnLPage";
 
 import { loadDataset, startSimulation } from "./services/simulator";
 
@@ -39,6 +40,10 @@ function Dashboard() {
         <Link to="/pnl">
           <button style={navButtonStyle}>P&amp;L</button>
         </Link>
+
+        <Link to="/realized-pnl">
+          <button style={navButtonStyle}>Realized P&amp;L</button>
+        </Link>
       </div>
 
       <StockSelector />
@@ -47,7 +52,7 @@ function Dashboard() {
 }
 
 function App() {
-  // ✅ Start simulator once when app loads
+  // ✅ Start frontend simulator once when app loads
   useEffect(() => {
     Promise.all(
       SYMBOLS.map((sym) =>
@@ -60,7 +65,7 @@ function App() {
       )
     )
       .then(() => {
-        // every 2 seconds as you requested
+        // every 2 seconds
         startSimulation({ intervalMs: 2000 });
       })
       .catch((e) => {
@@ -75,6 +80,7 @@ function App() {
       <Route path="/trades" element={<TradesPage />} />
       <Route path="/positions" element={<PositionsPage />} />
       <Route path="/pnl" element={<PnLPage />} />
+      <Route path="/realized-pnl" element={<RealizedPnLPage />} />
     </Routes>
   );
 }
