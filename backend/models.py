@@ -29,6 +29,20 @@ class Trade(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# ✅ NEW: realized trades table (no dates, as you requested)
+class RealizedTrade(db.Model):
+    __tablename__ = "realized_trades"
+
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(10), nullable=False)
+    quantity_sold = db.Column(db.Integer, nullable=False)
+    avg_buy_price = db.Column(db.Numeric(10, 2), nullable=False)
+    sell_price = db.Column(db.Numeric(10, 2), nullable=False)
+    realized_pnl = db.Column(db.Numeric(12, 2), nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Stock(db.Model):
     __tablename__ = "stocks"
 

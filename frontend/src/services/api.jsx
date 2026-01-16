@@ -63,3 +63,34 @@ export async function buyStock({ symbol, quantity, date }) {
   return res.json();
 }
 
+export async function sellStock({ symbol, quantity, date }) {
+  const res = await fetch(`${API_BASE_URL}/trades`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      symbol,
+      side: "SELL",
+      quantity,
+      date
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Failed to sell stock");
+  }
+
+  return res.json();
+}
+
+export async function fetchRealizedTrades() {
+  const response = await fetch(`${API_BASE_URL}/realized-trades`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch realized trades");
+  }
+  return response.json();
+}
+
+
