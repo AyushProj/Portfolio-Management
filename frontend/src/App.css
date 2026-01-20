@@ -1,6 +1,48 @@
+html,
+body,
 #root {
-  min-height: 100vh;
-  background-color: #0d1117;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* Background stays fixed */
+.app-background {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  display: flex;
+  justify-content: center;
+}
+
+/* Dark overlay */
+.app-background::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1;
+}
+
+.app-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1280px;
+  padding: 24px;
+
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.dashboard-inner {
+  width: 100%;
+  color: white;
 }
 
 
@@ -38,4 +80,7 @@
 
 .read-the-docs {
   color: #888;
+}
+.read-the-docs:hover {
+  color: #000;
 }
