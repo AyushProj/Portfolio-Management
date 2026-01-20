@@ -1,6 +1,7 @@
-// src/App.jsx
 import { useEffect } from "react";
 import { Routes, Route, Link } from "react-router-dom";
+
+import "./App.css";
 
 import StockSelector from "./components/StockSelector";
 import StockPage from "./components/StockPage";
@@ -10,6 +11,8 @@ import PnLPage from "./components/PnLPage";
 import RealizedPnLPage from "./components/RealizedPnLPage";
 
 import { loadDataset, startSimulation } from "./services/simulator";
+
+import homeBg from "./image/home page.png";
 
 const navButtonStyle = {
   marginRight: "12px",
@@ -21,11 +24,11 @@ const navButtonStyle = {
   cursor: "pointer",
 };
 
-const SYMBOLS = ["AAPL", "AMZN", "MSFT", "NFLX", "TSLA"]; // your dataset tickers
+const SYMBOLS = ["AAPL", "AMZN", "MSFT", "NFLX", "TSLA"];
 
 function Dashboard() {
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px" }}>
+    <div className="dashboard-inner">
       <h1>Portfolio Management Dashboard</h1>
 
       <div style={{ marginBottom: "24px" }}>
@@ -52,7 +55,6 @@ function Dashboard() {
 }
 
 function App() {
-  // ✅ Start frontend simulator once when app loads
   useEffect(() => {
     Promise.all(
       SYMBOLS.map((sym) =>
@@ -65,7 +67,6 @@ function App() {
       )
     )
       .then(() => {
-        // every 2 seconds
         startSimulation({ intervalMs: 2000 });
       })
       .catch((e) => {
@@ -74,14 +75,21 @@ function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/stock/:symbol" element={<StockPage />} />
-      <Route path="/trades" element={<TradesPage />} />
-      <Route path="/positions" element={<PositionsPage />} />
-      <Route path="/pnl" element={<PnLPage />} />
-      <Route path="/realized-pnl" element={<RealizedPnLPage />} />
-    </Routes>
+    <div
+      className="app-background"
+      style={{ backgroundImage: `url(${homeBg})` }}
+    >
+      <div className="app-content">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/stock/:symbol" element={<StockPage />} />
+          <Route path="/trades" element={<TradesPage />} />
+          <Route path="/positions" element={<PositionsPage />} />
+          <Route path="/pnl" element={<PnLPage />} />
+          <Route path="/realized-pnl" element={<RealizedPnLPage />} />
+        </Routes>
+      </div>
+    </div>
   );
 }
 

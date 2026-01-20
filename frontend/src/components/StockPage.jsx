@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import StockChart from "./StockChart";
-import { buyStock, sellStock } from "../services/api";
+
+import { buyStock, sellStock } from "../services/api.jsx";
+
 
 const WINDOW_SIZE = 50;
 
@@ -66,7 +68,7 @@ function StockPage() {
   const visibleData = useMemo(() => {
     if (!simDate || allPrices.length === 0) return [];
 
-    const endIdx = [...allPrices]
+    const endIdx = allPrices
       .map((p, idx) => ({ date: p.date, idx }))
       .filter((p) => p.date <= simDate)
       .pop()?.idx;
@@ -87,16 +89,6 @@ function StockPage() {
     setTrendColor(curr >= prev ? "#2ea043" : "#f85149");
   }, [visibleData]);
 
-  /* ---------------- Per-stock Unrealized PnL ---------------- */
-  const unrealizedPnL =
-    holdingQty > 0 && currentPrice !== null
-      ? currentPrice * holdingQty -
-        holdingQty *
-          (allPrices.find((p) => p.date === simDate)?.open || currentPrice)
-      : 0;
-
-  const pnlColor = unrealizedPnL >= 0 ? "#2ea043" : "#f85149";
-
   /* ---------------- Buy handler ---------------- */
   async function handleBuy() {
     if (!simDate) {
@@ -105,7 +97,7 @@ function StockPage() {
     }
 
     try {
-      setBuyStatus("Placing buy order...");
+      setBuyStatus("Placing buy order.");
 
       await buyStock({
         symbol,
@@ -132,7 +124,7 @@ function StockPage() {
     }
 
     try {
-      setSellStatus("Placing sell order...");
+      setSellStatus("Placing sell order.");
 
       await sellStock({
         symbol,
@@ -148,7 +140,6 @@ function StockPage() {
 
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
-  /* ---------------- UI ---------------- */
   return (
     <div
       style={{
@@ -156,6 +147,7 @@ function StockPage() {
         backgroundColor: "#0d1117",
         color: "#c9d1d9",
         padding: "24px",
+        paddingBottom: "80px",
       }}
     >
       <div style={{ width: "100%", padding: "0 32px" }}>
